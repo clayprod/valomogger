@@ -5,10 +5,10 @@ const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
 };
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-  schema: "valomogger",
-});
+const adapter = new PrismaPg(
+  { connectionString: process.env.DATABASE_URL },
+  { schema: "valomogger" },
+);
 
 export const prisma =
   globalForPrisma.prisma ??
