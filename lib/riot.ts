@@ -1,8 +1,11 @@
-const RIOT_BASE = `https://${process.env.RIOT_REGION ?? "americas"}.api.riotgames.com`;
+const PLATFORM = process.env.RIOT_PLATFORM ?? "na";
+const RIOT_BASE = `https://${PLATFORM}.api.riotgames.com`;
 
-export type RiotRecentMatchesResponse = {
-  currentTime?: number;
-  matchIds?: string[];
+export type RiotContentAct = {
+  id: string;
+  name: string;
+  isActive: boolean;
+  type?: string;
 };
 
 export type RiotContentResponse = {
@@ -13,6 +16,33 @@ export type RiotContentResponse = {
     assetName?: string;
     assetPath?: string;
   }>;
+  acts?: RiotContentAct[];
+};
+
+export type RiotLeaderboardEntry = {
+  puuid?: string;
+  gameName?: string;
+  tagLine?: string;
+  leaderboardRank?: number;
+  rankedRating?: number;
+};
+
+export type RiotLeaderboardResponse = {
+  shard?: string;
+  actId?: string;
+  totalPlayers?: number;
+  players?: RiotLeaderboardEntry[];
+};
+
+export type RiotMatchlistEntry = {
+  matchId: string;
+  gameStartTimeMillis?: number;
+  queueId?: string;
+};
+
+export type RiotMatchlistResponse = {
+  puuid: string;
+  history?: RiotMatchlistEntry[];
 };
 
 export async function riotFetch<T>(path: string): Promise<T> {
@@ -37,14 +67,26 @@ export async function riotFetch<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-export function getRecentCompetitiveMatches() {
-  return riotFetch<RiotRecentMatchesResponse>("/val/match/v1/recent-matches/by-queue/competitive");
+export function getValorantContent(locale = process.env.DEFAULT_LOCALE ?? "pt-BR") {
+  return riotFetch<RiotContentResponse>(`/val/content/v1/contents?locale=${encodeURIComponent(locale)}`);
+}
+
+export function getLeaderboard(actId: string, size = 20, startIndex = 0) {
+  return riotFetch<RiotLeaderboardResponse>(
+    `/val/ranked/v1/leaderboards/by-act/${encodeURIComponent(actId)}?size=${size}&startIndex=${startIndex}`,
+  );
+}
+
+export function getMatchlistByPuuid(puuid: string) {
+  return riotFetch<RiotMatchlistResponse>(
+    `/val/match/v1/matchlists/by-puuid/${encodeURIComponent(puuid)}`,
+  );
 }
 
 export function getMatch(matchId: string) {
   return riotFetch<unknown>(`/val/match/v1/matches/${encodeURIComponent(matchId)}`);
 }
 
-export function getValorantContent(locale = process.env.DEFAULT_LOCALE ?? "pt-BR") {
-  return riotFetch<RiotContentResponse>(`/val/content/v1/contents?locale=${encodeURIComponent(locale)}`);
+export function getCurrentActId(content: RiotContentResponse): string | undefined {
+  return content.acts?.find((act) => act.isActive && (act.type ?? "act").toLowerCase() === "act")?.id;
 }

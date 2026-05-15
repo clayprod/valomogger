@@ -1,9 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { applyBeltRules } from "@/lib/belts";
-import { getMatch, getRecentCompetitiveMatches, getValorantContent } from "@/lib/riot";
+import {
+  getCurrentActId,
+  getLeaderboard,
+  getMatch,
+  getMatchlistByPuuid,
+  getValorantContent,
+  type RiotContentResponse,
+} from "@/lib/riot";
 import { normalizeRiotMatch } from "@/lib/matches";
 
-export async function syncValorantContent() {
+export async function syncValorantContent(): Promise<RiotContentResponse> {
   const content = await getValorantContent();
   const characters = content.characters ?? [];
 
@@ -23,6 +30,41 @@ export async function syncValorantContent() {
       },
     });
   }
+
+  return content;
+}
+
+async function discoverCompetitiveMatchIds(actId: string, limit: number): Promise<string[]> {
+  const leaderboard = await getLeaderboard(actId, Math.max(limit * 4, 40), 0);
+  const puuids = (leaderboard.players ?? [])
+    .map((p) => p.puuid)
+    .filter((p): p is string => typeof p === "string" && p.length > 0);
+
+  const matchIds: string[] = [];
+  const seen = new Set<string>();
+
+  for (const puuid of puuids) {
+    if (matchIds.length >= limit) break;
+    let matchlist;
+    try {
+      matchlist = await getMatchlistByPuuid(puuid);
+    } catch {
+      continue;
+    }
+
+    const competitive = (matchlist.history ?? [])
+      .filter((entry) => (entry.queueId ?? "").toLowerCase() === "competitive")
+      .sort((a, b) => (b.gameStartTimeMillis ?? 0) - (a.gameStartTimeMillis ?? 0));
+
+    for (const entry of competitive) {
+      if (seen.has(entry.matchId)) continue;
+      seen.add(entry.matchId);
+      matchIds.push(entry.matchId);
+      if (matchIds.length >= limit) break;
+    }
+  }
+
+  return matchIds;
 }
 
 export async function ingestRecentCompetitiveMatches(limit = 20) {
@@ -32,9 +74,13 @@ export async function ingestRecentCompetitiveMatches(limit = 20) {
   });
 
   try {
-    await syncValorantContent();
-    const recent = await getRecentCompetitiveMatches();
-    const matchIds = (recent.matchIds ?? []).slice(0, limit);
+    const content = await syncValorantContent();
+    const actId = getCurrentActId(content);
+    if (!actId) {
+      throw new Error("Could not determine current Valorant act from content");
+    }
+
+    const matchIds = await discoverCompetitiveMatchIds(actId, limit);
     let imported = 0;
     let skipped = 0;
 

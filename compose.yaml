@@ -9,6 +9,7 @@ services:
     environment:
       DATABASE_URL: postgresql://valomogger:valomogger@db:5432/valomogger?schema=valomogger
       RIOT_API_KEY: ${RIOT_API_KEY:-}
+      RIOT_PLATFORM: ${RIOT_PLATFORM:-na}
       RIOT_REGION: ${RIOT_REGION:-americas}
       DEFAULT_LOCALE: ${DEFAULT_LOCALE:-pt-BR}
       NEXT_TELEMETRY_DISABLED: "1"
