@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Player {
+  puuid      String   @id
+  gameName   String?
+  tagLine    String?
+  region     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lastSeenAt DateTime @default(now())
+
+  stats          PlayerMatchStat[]
+  heldBelts      BeltState[]       @relation("CurrentHolder")
+  beltWins       BeltHistory[]     @relation("NewHolder")
+  beltLosses     BeltHistory[]     @relation("PreviousHolder")
+
+  @@index([region])
+  @@index([gameName, tagLine])
+}
+
+model Agent {
+  id            String  @id
+  name          String
+  localizedName String
+  role          String?
+  iconUrl       String?
+
+  stats PlayerMatchStat[]
+}
+
+model Match {
+  matchId       String   @id
+  region        String
+  queue         String
+  actId         String?
+  mapName       String?
+  startedAt     DateTime?
+  roundsPlayed  Int
+  winningTeamId String?
+  raw           Json
+  createdAt     DateTime @default(now())
+
+  stats       PlayerMatchStat[]
+  beltStates  BeltState[]
+  beltHistory BeltHistory[]
+
+  @@index([region, queue, actId])
+  @@index([startedAt])
+}
+
+model PlayerMatchStat {
+  id          String   @id @default(cuid())
+  matchId     String
+  playerPuuid String
+  agentId     String?
+  region      String
+  actId       String?
+  teamId      String
+  won         Boolean
+  rankTier    Int?
+  rankBucket  String
+  score       Int
+  rounds      Int
+  acs         Float
+  kills       Int
+  deaths      Int
+  assists     Int
+  kd          Float
+  createdAt   DateTime @default(now())
+
+  match  Match  @relation(fields: [matchId], references: [matchId], onDelete: Cascade)
+  player Player @relation(fields: [playerPuuid], references: [puuid], onDelete: Cascade)
+  agent  Agent? @relation(fields: [agentId], references: [id])
+
+  @@unique([matchId, playerPuuid])
+  @@index([region, actId])
+  @@index([rankBucket])
+  @@index([agentId])
+  @@index([acs])
+}
+
+model BeltState {
+  id           String   @id @default(cuid())
+  region       String
+  rankBucket   String
+  actId        String
+  holderPuuid  String
+  sourceMatchId String?
+  acquiredAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  holder Player @relation("CurrentHolder", fields: [holderPuuid], references: [puuid], onDelete: Cascade)
+  match  Match?  @relation(fields: [sourceMatchId], references: [matchId])
+
+  @@unique([region, rankBucket, actId])
+  @@index([holderPuuid])
+}
+
+model BeltHistory {
+  id                 String   @id @default(cuid())
+  region             String
+  rankBucket         String
+  actId              String
+  previousHolderPuuid String?
+  newHolderPuuid      String
+  matchId             String
+  mvpAcs              Float
+  reason              String
+  acquiredAt          DateTime @default(now())
+
+  previousHolder Player? @relation("PreviousHolder", fields: [previousHolderPuuid], references: [puuid], onDelete: SetNull)
+  newHolder      Player  @relation("NewHolder", fields: [newHolderPuuid], references: [puuid], onDelete: Cascade)
+  match          Match   @relation(fields: [matchId], references: [matchId], onDelete: Cascade)
+
+  @@index([region, rankBucket, actId])
+  @@index([newHolderPuuid])
+}
+
+model IngestionRun {
+  id             String   @id @default(cuid())
+  region         String
+  queue          String
+  status         String
+  startedAt      DateTime @default(now())
+  finishedAt     DateTime?
+  discovered     Int      @default(0)
+  imported       Int      @default(0)
+  skipped        Int      @default(0)
+  error          String?
+}

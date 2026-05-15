@@ -1,0 +1,36 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: valomogger:local
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://valomogger:valomogger@db:5432/valomogger?schema=public
+      RIOT_API_KEY: ${RIOT_API_KEY:-}
+      RIOT_REGION: ${RIOT_REGION:-americas}
+      DEFAULT_LOCALE: ${DEFAULT_LOCALE:-pt-BR}
+      NEXT_TELEMETRY_DISABLED: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: valomogger
+      POSTGRES_USER: valomogger
+      POSTGRES_PASSWORD: valomogger
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U valomogger -d valomogger"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

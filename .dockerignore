@@ -1,0 +1,10 @@
+.env
+.env.*
+.git
+.github
+.next
+node_modules
+coverage
+*.log
+dev.db
+prisma/*.db
