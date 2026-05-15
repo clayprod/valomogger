@@ -61,3 +61,13 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Trigger EasyPanel redeploy
+        env:
+          EASYPANEL_DEPLOY_WEBHOOK: ${{ secrets.EASYPANEL_DEPLOY_WEBHOOK }}
+        run: |
+          if [ -n "$EASYPANEL_DEPLOY_WEBHOOK" ]; then
+            curl --fail --silent --show-error --request POST "$EASYPANEL_DEPLOY_WEBHOOK"
+          else
+            echo "EASYPANEL_DEPLOY_WEBHOOK is not configured; skipping redeploy trigger."
+          fi
