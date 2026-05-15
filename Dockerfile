@@ -11,7 +11,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV DATABASE_URL=postgresql://user:pass@localhost:5432/build?schema=public
+ENV DATABASE_URL=postgresql://user:pass@localhost:5432/build?schema=valomogger
 RUN npm run build
 
 FROM node:${NODE_VERSION} AS runner

@@ -9,7 +9,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  DATABASE_URL: postgresql://user:pass@localhost:5432/ci?schema=public
+  DATABASE_URL: postgresql://user:pass@localhost:5432/ci?schema=valomogger
   RIOT_REGION: americas
   DEFAULT_LOCALE: pt-BR
 

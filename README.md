@@ -52,8 +52,9 @@ ghcr.io/<owner>/<repo>:<git-sha>
 No EasyPanel:
 
 - crie um app Docker apontando para a imagem `latest`;
-- crie um Postgres pelo EasyPanel;
+- crie ou use um Postgres pelo EasyPanel;
 - injete `DATABASE_URL`, `RIOT_API_KEY`, `RIOT_REGION`, `DEFAULT_LOCALE` e `NEXT_TELEMETRY_DISABLED`;
+- use um schema dedicado na URL, por exemplo `?schema=valomogger`, para evitar erro P3005 quando o schema `public` ja tem tabelas;
 - exponha a porta `3000`.
 
 O container roda `prisma migrate deploy` antes de iniciar o servidor Next.js.
